@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=65.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robot_framework"
+version = "0.1.0"
+authors = [
+  { name="ITK Development", email="itk-rpa@mkb.aarhus.dk" },
+]
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+]
+# HVER VERSION ER LAAST, OG DET ER EN SIKKERHEDSREGEL - IKKE PEDANTERI.
+# Robotten installerer sine afhaengigheder ved HVER koersel. Med ">=" henter den
+# den nyeste udgave paa PyPI i samme oejeblik, den koerer - saa en kapret eller
+# kompromitteret pakke rammer robotmaskinen uden at nogen har besluttet noget.
+# Et "==" betyder, at en ny version er en beslutning, nogen traeffer.
+#
+# cryptography staar IKKE her: den kommer med OpenOrchestrator, som pinner den
+# selv (==45.0.*). To steder at bestemme den version er ét for mange.
+#
+# oomtm peger paa en COMMIT og ikke paa "main". Vi vedligeholder selv oomtm, men
+# en gren flytter sig - og saa er det ikke laengere laast. En commit er.
+# oomtm-commit e27ec60 er den, hvor oomtm SELV har laast sine afhaengigheder
+# (requests, requests-ntlm, certifi, ... med "=="). De aeldre robotter peger paa
+# e4cc2d7, hvor oomtm's egne afhaengigheder stadig stod med ">=".
+dependencies = [
+    "OpenOrchestrator == 3.*",
+    # [pdf]: GO tager kun filer, saa en mail renderes til PDF med LibreOffice
+    # (oomtm.pdf), foer den journaliseres. Installeres uden administrator
+    # (msiexec /a) ved foerste koersel, ~350 MB, én gang.
+    "oomtm[pdf] @ git+https://github.com/mtm-aarhus/oomtm.git@e27ec606f9d3fa905bed7bd704d98d2f4ff3e903",
+    "requests == 2.34.2",
+    "Pillow == 10.4.0",
+]
+# Pillow bliver: robot_framework/error_screenshot.py importerer PIL, saa den er
+# en kerneafhaengighed for HVER robot og maa aldrig fjernes.
+
+[project.optional-dependencies]
+dev = [
+  "pylint",
+  "flake8"
+]
