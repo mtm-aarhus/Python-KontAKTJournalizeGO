@@ -31,10 +31,12 @@ classifiers = [
 # e4cc2d7, hvor oomtm's egne afhaengigheder stadig stod med ">=".
 dependencies = [
     "OpenOrchestrator == 3.*",
-    # [pdf]: GO tager kun filer, saa en mail renderes til PDF med LibreOffice
-    # (oomtm.pdf), foer den journaliseres. Installeres uden administrator
-    # (msiexec /a) ved foerste koersel, ~350 MB, én gang.
-    "oomtm[pdf] @ git+https://github.com/mtm-aarhus/oomtm.git@e27ec606f9d3fa905bed7bd704d98d2f4ff3e903",
+    # [pdf]: GO tager kun filer, saa en mail bliver en PDF, foer den
+    # journaliseres - med oomtm.mail og WeasyPrint, samme side som alle
+    # KontAKTs robotter laver af en mail. WeasyPrints biblioteker (~30 MB)
+    # installeres uden admin ved foerste koersel, én gang pr. maskine.
+    # oomtm b386b55: WeasyPrint i stedet for LibreOffices HTML-import.
+    "oomtm[pdf] @ git+https://github.com/mtm-aarhus/oomtm.git@b386b557439ae47228325f647d96750e41a6ffd8",
     "requests == 2.34.2",
     "Pillow == 10.4.0",
 ]

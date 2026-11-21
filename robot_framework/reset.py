@@ -9,6 +9,7 @@ every single document.
 from OpenOrchestrator.orchestrator_connection.connection import OrchestratorConnection
 
 from oomtm import go as oomtm_go
+from oomtm import engines
 
 
 class Client:
@@ -65,6 +66,8 @@ def clean_up(orchestrator_connection: OrchestratorConnection) -> None:
 def close_all(orchestrator_connection: OrchestratorConnection) -> None:
     """Gracefully close all applications used by the robot."""
     orchestrator_connection.log_trace("Closing all applications.")
+    # oomtm's WeasyPrint-proces (den lukker også selv, når robotten slutter).
+    engines.close_workers()
 
 
 def kill_all(orchestrator_connection: OrchestratorConnection) -> None:
@@ -75,4 +78,9 @@ def kill_all(orchestrator_connection: OrchestratorConnection) -> None:
 def open_all(orchestrator_connection: OrchestratorConnection) -> Client:
     """Open all connections used by the robot and return them as a :class:`Client`."""
     orchestrator_connection.log_trace("Opening GO connection.")
+    # Mails bliver PDF med oomtm's WeasyPrint (ikke LibreOffice - den skal
+    # robotten ikke bruge). Findes dens biblioteker ikke, installeres de nu, uden
+    # admin, én gang pr. maskine - så det ses her og ikke midt i en sag.
+    engines.ensure_weasyprint(log=orchestrator_connection.log_info)
+    orchestrator_connection.log_info("WeasyPrint klar til mails.")
     return Client(orchestrator_connection)

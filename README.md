@@ -24,7 +24,8 @@ Queue-driven; the mode is set by `mode` in the input:
 - **`update_metadata`** updates Title / Modtaget and CaseOwner when they change
   in KontAKT.
 - **`journalize_email`** fetches a message from KontAKT, renders it to PDF
-  (LibreOffice) and adds + journalises it on the GO case, **together with every
+  (`oomtm.mail` + WeasyPrint, the same page every KontAKT robot makes of a
+  mail) and adds + journalises it on the GO case, **together with every
   attachment**, each as its own document. Safe to re-run: already-filed files
   are skipped, and file names are fixed per KontAKT id so a re-run overwrites
   rather than duplicates.
@@ -75,6 +76,7 @@ Delivered documents go into a sub-folder per source case (named by
 
 ## Dependencies
 
-The shared [`oomtm`](https://github.com/mtm-aarhus/oomtm) library (`go`, `pdf`),
-pinned to a commit. E-mail/HTML → PDF uses LibreOffice headless, installed
-without admin rights on first use by `oomtm.pdf.ensure_libreoffice`.
+The shared [`oomtm`](https://github.com/mtm-aarhus/oomtm) library (`go`, `mail`, `engines`),
+pinned to a commit. E-mail → PDF uses `oomtm.mail` and WeasyPrint; WeasyPrint's
+Windows libraries are installed without admin rights on the first run by
+`oomtm.engines.ensure_weasyprint` (from `reset.open_all`).

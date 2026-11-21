@@ -43,15 +43,18 @@ from OpenOrchestrator.orchestrator_connection.connection import OrchestratorConn
 from OpenOrchestrator.database.queues import QueueElement
 from urllib.parse import quote
 import json
+from datetime import datetime
 import os
 import tempfile
+from pathlib import Path
 
 import requests
 
 from robot_framework import reset
 from robot_framework.exceptions import CaseDeleted
 from oomtm import go as oomtm_go
-from oomtm import pdf as oomtm_pdf
+from oomtm import engines
+from oomtm import mail as oomtm_mail
 from oomtm import sharepoint as sp  # sanitize_segment helper only
 
 # The AKT cases live under the /aktindsigt web (the caseworker's proven create
@@ -631,35 +634,62 @@ def _doc_metadata_xml(*, title: str, date: str = "", korrespondance: str = "") -
 
 
 def _email_to_pdf(oc, email: dict, tidspunkt, udgaaende: bool):
-    """Render a KontAKT e-mail to PDF bytes via LibreOffice (html -> pdf).
-    Returns (pdf_bytes, file_name). The file name carries the KontAKT id, so a
-    re-run overwrites its own file instead of adding a second one."""
-    soffice = oomtm_pdf.ensure_libreoffice(log=oc.log_info)
+    """Render a KontAKT e-mail to PDF bytes. Returns (pdf_bytes, file_name). The
+    file name carries the KontAKT id, so a re-run overwrites its own file
+    instead of adding a second one.
+
+    The page is oomtm's (``oomtm.mail.to_html`` + WeasyPrint), the same one every
+    KontAKT robot makes of a mail: Danish header (Fra, Sendt/Modtaget in Danish
+    time, Til, Emne, Vedhæftet), the text with its images (KontAKT has already
+    put them in as data: URIs), A4. Before 2026-11 this was a page of its own
+    through LibreOffice's HTML import - the path that turned æ/ø/å into
+    "Ã¦"/"Ã˜" in an Outlook mail.
+
+    The attachments are journalised as their own documents; the PDF lists
+    their names, as Outlook does when it prints a mail.
+    """
     subject = email.get("subject") or "E-mail"
-    header = (
-        f"<p style='color:#555;font-size:12px'>"
-        f"<b>Fra:</b> {_xml_attr(email.get('from_address') or '')}<br>"
-        f"<b>Til:</b> {_xml_attr(email.get('to_addresses') or '')}<br>"
-        f"<b>{'Sendt' if udgaaende else 'Modtaget'}:</b> {_xml_attr(tidspunkt or '')}<br>"
-        f"<b>Emne:</b> {_xml_attr(subject)}</p><hr>"
+    m = oomtm_mail.Mail(
+        subject=subject,
+        sender=email.get("from_address") or "",
+        to=email.get("to_addresses") or "",
+        date=_som_datetime(tidspunkt),
+        html=email.get("body_html") or None,
+        text=email.get("body_text") or "",
+        attachments=[a.get("file_name") or "uden navn" for a in (email.get("attachments") or [])
+                     if not a.get("is_inline")],
     )
-    body = email.get("body_html") or (
-        "<pre>" + _xml_attr(email.get("body_text") or "") + "</pre>"
-    )
-    html = (f"<!doctype html><html><head><meta charset='utf-8'></head>"
-            f"<body>{header}{body}</body></html>")
+
+    def side(kun_tekst=False):
+        html = oomtm_mail.to_html(m, kun_tekst=kun_tekst)
+        if not udgaaende:
+            # oomtm kalder tidspunktet "Sendt". En indgaaende mail har kun sit
+            # modtagelsestidspunkt (KontAKT har ingen sent_at for den).
+            html = html.replace("<tr><th>Sendt:</th>", "<tr><th>Modtaget:</th>", 1)
+        return html
+
     with tempfile.TemporaryDirectory() as tmp:
-        html_path = os.path.join(tmp, "email.html")
-        with open(html_path, "w", encoding="utf-8") as fh:
-            fh.write(html)
-        pdf_path = oomtm_pdf.office_to_pdf(html_path, tmp, soffice_path=soffice)
+        pdf_path = engines.html_to_pdf(side(), Path(tmp) / "email.pdf", log=oc.log_info)
         if pdf_path is None:
-            raise RuntimeError("LibreOffice kunne ikke konvertere e-mailen til PDF.")
-        with open(pdf_path, "rb") as fh:
-            pdf_bytes = fh.read()
+            # Mailens HTML kunne ikke saettes op: saa hellere teksten alene.
+            oc.log_info("E-mailens HTML kunne ikke blive en PDF - prøver med teksten alene.")
+            pdf_path = engines.html_to_pdf(side(kun_tekst=True), Path(tmp) / "email.pdf",
+                                           log=oc.log_info)
+        if pdf_path is None:
+            raise RuntimeError("E-mailen kunne ikke laves om til PDF.")
+        pdf_bytes = pdf_path.read_bytes()
     file_name = _safe_name(
         f"E-mail {email.get('id')} - {_date_only(tidspunkt)} - {subject}")[:120] + ".pdf"
     return pdf_bytes, file_name
+
+
+def _som_datetime(value):
+    """'2026-11-20 17:19:00' (dansk tid fra KontAKT) -> datetime uden tidszone,
+    som oomtm.mail viser, som den er. None, hvis der ingen er."""
+    try:
+        return datetime.fromisoformat(str(value).strip()) if value else None
+    except ValueError:
+        return None
 
 
 # ----- caseowner (best-effort) -----------------------------------------------
