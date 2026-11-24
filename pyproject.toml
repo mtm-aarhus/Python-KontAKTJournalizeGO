@@ -37,7 +37,11 @@ dependencies = [
     # installeres uden admin ved foerste koersel, én gang pr. maskine.
     # oomtm b386b55: WeasyPrint i stedet for LibreOffices HTML-import.
     # oomtm 07008ca: Mail.date_label, så en modtaget mail står med "Modtaget".
-    "oomtm[pdf] @ git+https://github.com/mtm-aarhus/oomtm.git@07008cae0c86090ca336f0148496ee5ef0694b4c",
+    # oomtm c9fa4de: LibreOffice installeres kun én gang pr. maskine, også når
+    # Windows nægter at omdøbe udpakningen. Alle robotter med LibreOffice skal
+    # stå på den eller nyere: en ældre kender ikke en udpakning, der blev
+    # liggende, og installerer forfra ved hver kørsel.
+    "oomtm[pdf] @ git+https://github.com/mtm-aarhus/oomtm.git@c9fa4de592dfbee1399077ef2968f1960de801fd",
     "requests == 2.34.2",
     "Pillow == 10.4.0",
 ]
