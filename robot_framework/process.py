@@ -653,18 +653,24 @@ def _email_to_pdf(oc, email: dict, tidspunkt, udgaaende: bool):
         subject=subject,
         sender=email.get("from_address") or "",
         to=email.get("to_addresses") or "",
+        # Cc manglede (2026-11-24): KontAKT sendte den ikke med, saa en mail
+        # med kopimodtagere stod i GO, som om den kun gik til "Til".
+        cc=email.get("cc_addresses") or "",
         date=_som_datetime(tidspunkt),
         html=email.get("body_html") or None,
         text=email.get("body_text") or "",
         attachments=[a.get("file_name") or "uden navn" for a in (email.get("attachments") or [])
                      if not a.get("is_inline")],
     )
+    # En indgaaende mail har kun sit modtagelsestidspunkt (KontAKT har ingen
+    # sent_at for den). Sat bagefter og ikke i kaldet: en oomtm fra foer
+    # date_label kender ikke feltet - saa klarer erstatningen i side() det.
+    m.date_label = "Sendt" if udgaaende else "Modtaget"
 
     def side(kun_tekst=False):
         html = oomtm_mail.to_html(m, kun_tekst=kun_tekst)
-        if not udgaaende:
-            # oomtm kalder tidspunktet "Sendt". En indgaaende mail har kun sit
-            # modtagelsestidspunkt (KontAKT har ingen sent_at for den).
+        if not udgaaende and "<tr><th>Modtaget:</th>" not in html:
+            # En oomtm fra foer date_label kalder altid tidspunktet "Sendt".
             html = html.replace("<tr><th>Sendt:</th>", "<tr><th>Modtaget:</th>", 1)
         return html
 

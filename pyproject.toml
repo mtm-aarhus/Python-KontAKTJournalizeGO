@@ -36,7 +36,8 @@ dependencies = [
     # KontAKTs robotter laver af en mail. WeasyPrints biblioteker (~30 MB)
     # installeres uden admin ved foerste koersel, én gang pr. maskine.
     # oomtm b386b55: WeasyPrint i stedet for LibreOffices HTML-import.
-    "oomtm[pdf] @ git+https://github.com/mtm-aarhus/oomtm.git@b386b557439ae47228325f647d96750e41a6ffd8",
+    # oomtm 07008ca: Mail.date_label, så en modtaget mail står med "Modtaget".
+    "oomtm[pdf] @ git+https://github.com/mtm-aarhus/oomtm.git@07008cae0c86090ca336f0148496ee5ef0694b4c",
     "requests == 2.34.2",
     "Pillow == 10.4.0",
 ]
